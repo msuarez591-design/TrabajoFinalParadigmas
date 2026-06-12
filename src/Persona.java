@@ -1,19 +1,32 @@
+
 /**
  * Representa la entidad abstracta base para cualquier individuo en el sistema.
+ * @author Martin Suarez , Candela Guadalupe Bravo
+ * @version 1.0
  */
 public abstract class Persona {
-    private final String dni; // final: la identidad no cambia
+
+    private int dni; 
     private String nombre;
+
+//Constructores
+    public Persona() {
+        this.dni = 0; // Valor por defecto para DNI
+        this.nombre = "Desconocido"; // Valor por defecto para nombre
+    }
 
     /**
      * Constructor base con programación defensiva.
+     *
      * @param dni DNI de la persona (no nulo/vacío).
      * @param nombre Nombre completo (no nulo/vacío).
      * @throws IllegalArgumentException si los datos son inválidos.
+     * @author Martin Suarez , Candela Guadalupe Bravo
+     * @version 1.0
      */
-    public Persona(String dni, String nombre) {
-        if (dni == null || dni.trim().isEmpty()) {
-            throw new IllegalArgumentException("El DNI no puede ser nulo o vacío.");
+    public Persona( int dni, String nombre) {
+        if (dni == 0) {
+            throw new IllegalArgumentException("El DNI no puede ser cero.");
         }
         if (nombre == null || nombre.trim().isEmpty()) {
             throw new IllegalArgumentException("El nombre no puede ser nulo o vacío.");
@@ -22,7 +35,8 @@ public abstract class Persona {
         this.nombre = nombre;
     }
 
-    public String getDni() {
+//metodos
+    public int getDni() {
         return this.dni;
     }
 
@@ -35,5 +49,12 @@ public abstract class Persona {
             throw new IllegalArgumentException("El nombre no puede ser nulo o vacío.");
         }
         this.nombre = nombre;
+    }
+
+    public void setDni(int dni) {
+        if (dni == 0) {
+            throw new IllegalArgumentException("El DNI no puede ser cero.");
+        }
+        this.dni = dni;
     }
 }

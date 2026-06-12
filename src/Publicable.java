@@ -1,7 +1,7 @@
 /**
  * Interfaz que define el comportamiento obligatorio para cualquier 
  * elemento del sistema que pueda ser publicado y mostrado por pantalla.
- * @author Tu Nombre
+ * @author Martin Suarez , Candela Guadalupe Bravo
  * @version 1.0
  */
 public interface Publicable {
