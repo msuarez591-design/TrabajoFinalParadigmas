@@ -1,123 +1,217 @@
 import java.util.ArrayList;
-import java.util.List;
 
 /**
- * Clase controladora que gestiona el estado en memoria de todo el sistema.
+ * Orquestador principal del sistema de noticias NEWS.
+ * @author Martin Suarez, Candela Guadalupe Bravo
+ * @version 1.0
  */
 public class Registro {
-    private List<Usuario> usuarios;
-    private List<Autor> autores;
-    private List<Noticia> noticias;
-    private List<Comentario> comentarios;
+    private ArrayList<Noticia> listaNoticias;
+    private ArrayList<Usuario> listaUsuarios;
+    private ArrayList<Autor> listaAutores;
+    private GestorArchivo gestorArchivo;
 
     public Registro() {
-        this.usuarios = new ArrayList<>();
-        this.autores = new ArrayList<>();
-        this.noticias = new ArrayList<>();
-        this.comentarios = new ArrayList<>();
+        this.listaNoticias = new ArrayList<>();
+        this.listaUsuarios = new ArrayList<>();
+        this.listaAutores = new ArrayList<>();
+        this.gestorArchivo = new GestorArchivo();
     }
 
-    public void registrarUsuario(Usuario u) {
-        if (u == null) throw new IllegalArgumentException("Usuario nulo.");
-
-        for (Usuario registrado : this.usuarios) {
-            if (registrado.getDni().equals(u.getDni())) {
-                throw new IllegalStateException("El DNI ya está registrado.");
-            }
-        }
-        this.usuarios.add(u);
+    public Registro(ArrayList<Noticia> noticias, ArrayList<Usuario> usuarios, ArrayList<Autor> autores) {
+        this.listaNoticias = (noticias != null) ? noticias : new ArrayList<>();
+        this.listaUsuarios = (usuarios != null) ? usuarios : new ArrayList<>();
+        this.listaAutores = (autores != null) ? autores : new ArrayList<>();
+        this.gestorArchivo = new GestorArchivo();
     }
 
-    public void registrarAutor(Autor a) {
-        if (a == null) throw new IllegalArgumentException("Autor nulo.");
+    // --- MÉTODOS DE REGISTRO (REQUERIMIENTOS) ---
 
-        for (Autor registrado : this.autores) {
-            if (registrado.getDni().equals(a.getDni())) {
-                throw new IllegalStateException("El DNI ya está registrado.");
-            }
+    public void registrarAutor(Autor autor) {
+        if (autor == null) throw new IllegalArgumentException("El autor no puede ser nulo.");
+        if (buscarAutorPorDni(autor.getDni()) == null) {
+            this.listaAutores.add(autor);
         }
-        this.autores.add(a);
     }
 
-    public void publicarNoticia(Noticia n) {
-        if (n == null) throw new IllegalArgumentException("Noticia nula.");
-        if (!this.autores.contains(n.getAutor())) {
-            throw new IllegalStateException("El autor de la noticia no está registrado.");
+    public void registrarUsuario(Usuario usuario) {
+        if (usuario == null) throw new IllegalArgumentException("El usuario no puede ser nulo.");
+        if (buscarUsuarioPorDni(usuario.getDni()) == null) {
+            this.listaUsuarios.add(usuario);
         }
-        this.noticias.add(n);
     }
 
-    public void registrarComentario(Comentario c, Noticia noticia) {
-        if (c == null) throw new IllegalArgumentException("Comentario nulo.");
-        if (noticia == null) throw new IllegalArgumentException("Noticia nula.");
-        if (!this.noticias.contains(noticia)) {
-            throw new IllegalArgumentException("La noticia no está registrada.");
+    public void cargarNoticia(Noticia noticia) {
+        if (noticia == null) throw new IllegalArgumentException("La noticia no puede ser nula.");
+        // Validamos que la noticia tenga autor y que éste esté registrado
+        if (noticia.getAutor() == null) {
+            throw new IllegalArgumentException("La noticia debe tener un autor registrado.");
         }
-        Persona autor = c.getAutorComentario();
-        if (autor == null) {
-            throw new IllegalArgumentException("El comentario debe tener un autor.");
+        if (buscarAutorPorDni(noticia.getAutor().getDni()) == null) {
+            throw new IllegalArgumentException("Error: El autor de la noticia no está registrado en el sistema.");
         }
-        boolean autorRegistrado = this.usuarios.contains(autor) || this.autores.contains(autor);
-        if (!autorRegistrado) {
-            throw new IllegalStateException("El autor del comentario no está registrado.");
-        }
-
-        noticia.agregarComentario(c);
-        this.comentarios.add(c);
+        this.listaNoticias.add(noticia);
     }
 
-    public List<Noticia> listarNoticiasPorAnio(int anio) {
-        List<Noticia> resultado = new ArrayList<>();
-        for (Noticia n : this.noticias) {
+    public void registrarComentarioEnNoticia(String tituloNoticia, int numero, String texto, int dniLector) {
+        Noticia noticia = buscarNoticiaPorTitulo(tituloNoticia);
+        if (noticia == null) {
+            System.out.println("Error: No existe la noticia titulada: " + tituloNoticia);
+            return;
+        }
+
+        // Buscamos si el que comenta es un Usuario registrado
+        Persona lector = buscarUsuarioPorDni(dniLector);
+        // Si no es un usuario lector, verificamos si es un Autor quien comenta
+        if (lector == null) {
+            lector = buscarAutorPorDni(dniLector);
+        }
+
+        if (lector == null) {
+            System.out.println("Error: El DNI " + dniLector + " no corresponde a un usuario registrado. No puede comentar.");
+            return;
+        }
+
+        noticia.agregarComentario(new Comentario(numero, texto, lector));
+    }
+
+    // --- MÉTODOS DE BÚSQUEDA INTERNOS (PROG. DEFENSIVA) ---
+
+    private Autor buscarAutorPorDni(int dni) {
+        for (Autor a : listaAutores) {
+            if (a.getDni() == dni) return a;
+        }
+        return null;
+    }
+
+    private Usuario buscarUsuarioPorDni(int dni) {
+        for (Usuario u : listaUsuarios) {
+            if (u.getDni() == dni) return u;
+        }
+        return null;
+    }
+
+    private Noticia buscarNoticiaPorTitulo(String titulo) {
+        for (Noticia n : listaNoticias) {
+            if (n.getTitulo().equalsIgnoreCase(titulo)) return n;
+        }
+        return null;
+    }
+
+    // --- CONSULTAS SOLICITADAS POR LA CONSIGNA ---
+
+    /**
+     * Consulta 1: Listar noticias publicadas en el año
+     */
+    public void listarNoticiasPorAnio(int anio) {
+        System.out.println("\n--- NOTICIAS PUBLICADAS EN EL AÑO " + anio + " ---");
+        boolean encontro = false;
+        for (Noticia n : listaNoticias) {
             if (n.getAnio() == anio) {
-                resultado.add(n);
+                System.out.println(n.obtenerFormato());
+                encontro = true;
             }
         }
-        return resultado;
+        if (!encontro) System.out.println("No se encontraron noticias en ese año.");
     }
 
-    public List<Noticia> listarNoticiasUltimoMes(int anio, int mes) {
-        List<Noticia> resultado = new ArrayList<>();
-        for (Noticia n : this.noticias) {
-            if (n.getAnio() == anio && n.getMes() == mes) {
-                resultado.add(n);
+    /**
+     * Consulta 2: Listado de noticias publicadas el último mes (simulado mediante parámetros de fecha actual)
+     */
+    public void listarNoticiasUltimoMes(int mesActual, int anioActual) {
+        System.out.println("\n--- NOTICIAS PUBLICADAS EL ÚLTIMO MES (" + mesActual + "/" + anioActual + ") ---");
+        boolean encontro = false;
+        for (Noticia n : listaNoticias) {
+            if (n.getMes() == mesActual && n.getAnio() == anioActual) {
+                System.out.println(n.obtenerFormato());
+                encontro = true;
             }
         }
-        return resultado;
+        if (!encontro) System.out.println("No hay publicaciones registradas para este periodo.");
     }
 
-    public List<Noticia> listarNoticiasPorAutor(Autor autor) {
-        if (autor == null) throw new IllegalArgumentException("Autor nulo.");
-        List<Noticia> resultado = new ArrayList<>();
-        for (Noticia n : this.noticias) {
-            if (n.getAutor().getDni().equals(autor.getDni())) {
-                resultado.add(n);
+    /**
+     * Consulta 3: Mostrar una noticia y sus comentarios asociados
+     */
+    public void mostrarNoticiaYComentarios(String titulo) {
+        Noticia n = buscarNoticiaPorTitulo(titulo);
+        System.out.println("\n--- VISTA DE ARTÍCULO ---");
+        if (n == null) {
+            System.out.println("La noticia solicitada no existe.");
+            return;
+        }
+        System.out.println(n.obtenerFormato());
+        System.out.println("Detalle: " + n.getDetalle());
+        System.out.println("  ↳ Comentarios (" + n.getComentarios().size() + "):");
+        if (n.getComentarios().isEmpty()) {
+            System.out.println("    [Aún no hay comentarios en esta noticia]");
+        } else {
+            for (Comentario c : n.getComentarios()) {
+                System.out.println("    * #" + c.getNumero() + " - " + c.getTexto() + " (Por: " + c.getAutorComentario().getNombre() + ")");
             }
         }
-        return resultado;
     }
 
-    public List<Comentario> obtenerComentariosPorNoticia(Noticia noticia) {
-        if (noticia == null) throw new IllegalArgumentException("Noticia nula.");
-        if (!this.noticias.contains(noticia)) {
-            throw new IllegalArgumentException("La noticia no está registrada.");
+    /**
+     * Consulta 4: Artículos publicados por un determinado autor
+     */
+    public void listarNoticiasPorAutor(int dniAutor) {
+        Autor autor = buscarAutorPorDni(dniAutor);
+        if (autor == null) {
+            System.out.println("\nEl autor con DNI " + dniAutor + " no existe.");
+            return;
         }
-        return new ArrayList<>(noticia.getComentarios());
+        System.out.println("\n--- ARTÍCULOS PUBLICADOS POR: " + autor.getNombre() + " (" + autor.getMedio() + ") ---");
+        boolean encontro = false;
+        for (Noticia n : listaNoticias) {
+            if (n.getAutor().getDni() == dniAutor) {
+                System.out.println("- " + n.getTitulo() + " (" + n.getDia() + "/" + n.getMes() + "/" + n.getAnio() + ")");
+                encontro = true;
+            }
+        }
+        if (!encontro) System.out.println("Este autor aún no ha publicado artículos.");
     }
 
-    public List<Usuario> getUsuarios() {
-        return new ArrayList<>(this.usuarios);
+    // --- MÉTODOS DE DISCO ---
+
+    public void guardarEnDisco() {
+        this.gestorArchivo.guardarEstado(this.listaNoticias, this.listaUsuarios, this.listaAutores);
     }
 
-    public List<Autor> getAutores() {
-        return new ArrayList<>(this.autores);
+    public void cargarDesdeDisco() {
+        this.gestorArchivo.cargarEstado(this.listaNoticias, this.listaUsuarios, this.listaAutores);
     }
 
-    public List<Noticia> getNoticias() {
-        return new ArrayList<>(this.noticias);
+    // --- Getters y Setters 
+    public ArrayList<Noticia> getListaNoticias() {
+        return this.listaNoticias;
     }
 
-    public List<Comentario> getComentarios() {
-        return new ArrayList<>(this.comentarios);
+    public void setListaNoticias(ArrayList<Noticia> listaNoticias) {
+        this.listaNoticias = (listaNoticias != null) ? listaNoticias : new ArrayList<>();
+    }
+
+    public ArrayList<Usuario> getListaUsuarios() {
+        return this.listaUsuarios;
+    }
+
+    public void setListaUsuarios(ArrayList<Usuario> listaUsuarios) {
+        this.listaUsuarios = (listaUsuarios != null) ? listaUsuarios : new ArrayList<>();
+    }
+
+    public ArrayList<Autor> getListaAutores() {
+        return this.listaAutores;
+    }
+
+    public void setListaAutores(ArrayList<Autor> listaAutores) {
+        this.listaAutores = (listaAutores != null) ? listaAutores : new ArrayList<>();
+    }
+
+    public GestorArchivo getGestorArchivo() {
+        return this.gestorArchivo;
+    }
+
+    public void setGestorArchivo(GestorArchivo gestorArchivo) {
+        if (gestorArchivo != null) this.gestorArchivo = gestorArchivo;
     }
 }
