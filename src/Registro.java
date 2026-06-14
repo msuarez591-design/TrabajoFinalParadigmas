@@ -142,9 +142,9 @@ public class Registro {
         }
         System.out.println(n.obtenerFormato());
         System.out.println("Detalle: " + n.getDetalle());
-        System.out.println("  ↳ Comentarios (" + n.getComentarios().size() + "):");
+        System.out.println("  > Comentarios (" + n.getComentarios().size() + "):");
         if (n.getComentarios().isEmpty()) {
-            System.out.println("    [Aún no hay comentarios en esta noticia]");
+            System.out.println("    [Sin comentarios]");
         } else {
             for (Comentario c : n.getComentarios()) {
                 System.out.println("    * #" + c.getNumero() + " - " + c.getTexto() + " (Por: " + c.getAutorComentario().getNombre() + ")");
